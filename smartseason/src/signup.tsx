@@ -1,11 +1,10 @@
 
-
-function App() {
-  return (
-<div class="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8 bg-black ">
+function Signup(){
+	return(
+		<div class="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8 bg-black ">
   <h1 class="text-center text-white font-bold text-2xl">SmartSeason</h1>
   <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-    <h2 >Sign in to your account</h2>
+    <h2 >Sign up to your account</h2>
   </div>
 
   <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
@@ -32,12 +31,11 @@ function App() {
       </div>
     </form>
     <p class="mt-10 text-center text-sm/6 text-gray-400">
-      Doesn't have an account?
-      <a href="/signup" class="font-semibold text-indigo-400 hover:text-indigo-300 pl-1">Signup</a>
+      already have an account?
+      <a href="/" class="font-semibold text-indigo-400 hover:text-indigo-300 pl-1">Signin</a>
     </p>
   </div>
 </div>
-  )
+	)
 }
-
-export default App
+export default Signup;
