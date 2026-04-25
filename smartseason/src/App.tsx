@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 export default function App() {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,7 +20,7 @@ export default function App() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:3000/login", {
+      const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,7 +37,9 @@ export default function App() {
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      if (data.user?.role === "admin") {
+      const role = data.user?.role?.toLowerCase();
+
+      if (role === "admin") {
         navigate("/addashboard");
       } else {
         navigate("/dashboard");
@@ -54,9 +54,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6">
-          Login
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
 
         {error && (
           <p className="text-red-500 text-sm mb-4 text-center">

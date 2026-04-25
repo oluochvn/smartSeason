@@ -1,24 +1,22 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import './index.css'
+import "./index.css";
 
-import App from './App.tsx'
-import Signup from './signup.tsx'
+import App from "./App";
+import Signup from "./signup";
 
+import Dashboard from "./dashboard";
+import MyFields from "./myfields";
+import History from "./history";
 
-import Dashboard from './dashboard.tsx'
-import MyFields from './myfields.tsx'
-import History from './history.tsx'
+import AdDashboard from "./ad/addashboard";
+import AdFields from "./ad/adfields";
+import AdAgents from "./ad/adagents";
+import AdUpdates from "./ad/adupdates";
+import AdReport from "./ad/adreport";
 
-
-import AdDashboard from './ad/addashboard.tsx'
-import AdFields from './ad/adfields.tsx'
-import AdAgents from './ad/adagents.tsx'
-import AdUpdates from './ad/adupdates.tsx'
-import AdReport from './ad/adreport.tsx'
-
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
@@ -34,8 +32,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/adagents" element={<AdAgents />} />
         <Route path="/adupdates" element={<AdUpdates />} />
         <Route path="/adreport" element={<AdReport />} />
-
       </Routes>
     </BrowserRouter>
   </StrictMode>
-)
+);
