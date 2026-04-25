@@ -1,160 +1,189 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "./Navbar";
 
-const NAV_ITEMS = ["Dashboard", "Fields", "Agents", "Report"];
+type User = {
+  id: string;
+  email: string;
+  role: "admin" | "agent";
+};
 
-function Agents() {
-  const [active, setActive] = useState("Agents");
+type Field = {
+  id: string;
+  name: string;
+  crop_type: string;
+  planting_date: string;
+  current_stage: "Planted" | "Growing" | "Ready" | "Harvested";
+  status: "Active" | "At Risk" | "Completed";
+  location?: string;
+  notes?: string;
+  assigned_agent?: string;
+};
 
-  const [agents, setAgents] = useState([
-    { id: 1, name: "John", field: "Field A" },
-    { id: 2, name: "Mary", field: "Field B" },
-  ]);
+export default function Agent() {
+  const navigate = useNavigate();
 
-  const [form, setForm] = useState({ name: "", field: "" });
-  const [editingId, setEditingId] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [fields, setFields] = useState<Field[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
 
-  const handleSubmit = () => {
-    if (!form.name || !form.field) return;
-
-    if (editingId) {
-      setAgents((prev) =>
-        prev.map((a) =>
-          a.id === editingId ? { ...a, ...form } : a
-        )
-      );
-      setEditingId(null);
-    } else {
-      setAgents((prev) => [
-        ...prev,
-        { id: Date.now(), ...form },
-      ]);
+    if (!token || !storedUser) {
+      navigate("/");
+      return;
     }
 
-    setForm({ name: "", field: "" });
-  };
+    const loggedUser: User = JSON.parse(storedUser);
+    setUser(loggedUser);
 
-  const handleEdit = (agent) => {
-    setForm({ name: agent.name, field: agent.field });
-    setEditingId(agent.id);
-  };
+    fetch("http://localhost:3000/fields", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const allFields: Field[] = data.fields || [];
 
-  const handleDelete = (id) => {
-    setAgents((prev) => prev.filter((a) => a.id !== id));
-  };
+        const assignedFields = allFields.filter(
+          (field) => field.assigned_agent === loggedUser.id
+        );
+
+        setFields(assignedFields);
+      })
+      .catch((err) => console.log(err))
+      .finally(() => setLoading(false));
+  }, [navigate]);
+
+  const activeFields = fields.filter((field) => field.status === "Active");
+  const atRiskFields = fields.filter((field) => field.status === "At Risk");
+  const completedFields = fields.filter((field) => field.status === "Completed");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="p-6 text-gray-500">Loading assigned fields...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-950 h-14 flex items-center justify-between px-10">
-        <div className="flex items-center gap-8">
-          <span className="text-green-400 font-semibold text-lg">
-            Shamba
-          </span>
-
-          <nav>
-            <ul className="flex text-white/60 font-bold gap-4">
-              {NAV_ITEMS.map((item) => (
-                <li
-                  key={item}
-                  onClick={() => setActive(item)}
-                  className={`cursor-pointer ${
-                    active === item ? "text-white" : ""
-                  }`}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-green-800 flex items-center justify-center text-xs font-semibold text-green-400">
-            AD
-          </div>
-          <span className="text-white/60 text-sm">Admin</span>
-        </div>
-      </header>
+      <Navbar />
 
       <section className="p-6">
-        <div className="bg-white p-4 rounded-lg shadow flex gap-4">
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Agent name"
-            className="border px-3 py-2 rounded w-full"
-          />
+        <h1 className="text-2xl font-bold text-gray-800">
+          Field Agent Page
+        </h1>
 
-          <input
-            name="field"
-            value={form.field}
-            onChange={handleChange}
-            placeholder="Assigned field"
-            className="border px-3 py-2 rounded w-full"
-          />
+        <p className="text-gray-500 mt-1">
+          Welcome, {user?.email}
+        </p>
+      </section>
 
-          <button
-            onClick={handleSubmit}
-            className="bg-green-900 text-white px-4 py-2 rounded"
-          >
-            {editingId ? "Update" : "Add"}
-          </button>
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-6 px-6">
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">Assigned Fields</h2>
+          <p className="text-2xl font-bold">{fields.length}</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">Active</h2>
+          <p className="text-2xl font-bold text-green-700">
+            {activeFields.length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">At Risk</h2>
+          <p className="text-2xl font-bold text-yellow-600">
+            {atRiskFields.length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">Completed</h2>
+          <p className="text-2xl font-bold text-blue-700">
+            {completedFields.length}
+          </p>
         </div>
       </section>
 
-      <section className="px-6 pb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-4">Agents</h2>
+      <section className="p-6">
+        <div className="bg-white rounded-xl shadow p-5">
+          <h2 className="text-lg font-semibold mb-4">
+            My Assigned Fields
+          </h2>
 
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-gray-500 text-sm border-b">
-                <th className="py-2">Name</th>
-                <th className="py-2">Field</th>
-                <th className="py-2">Actions</th>
-              </tr>
-            </thead>
+          {fields.length === 0 ? (
+            <p className="text-gray-400 text-sm">
+              No fields assigned yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fields.map((field) => (
+                <div
+                  key={field.id}
+                  className="border rounded-xl p-4 hover:shadow transition"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-gray-800">
+                        {field.name}
+                      </h3>
 
-            <tbody className="text-sm">
-              {agents.map((agent) => (
-                <tr key={agent.id} className="border-b">
-                  <td className="py-2">{agent.name}</td>
-                  <td className="py-2">{agent.field}</td>
-                  <td className="py-2 flex gap-4">
-                    <button
-                      onClick={() => handleEdit(agent)}
-                      className="text-blue-600"
-                    >
-                      Edit
-                    </button>
+                      <p className="text-sm text-gray-500">
+                        {field.crop_type}
+                      </p>
+                    </div>
 
-                    <button
-                      onClick={() => handleDelete(agent.id)}
-                      className="text-red-600"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+                    <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                      {field.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 text-sm text-gray-600 space-y-1">
+                    <p>
+                      <span className="font-medium">Stage:</span>{" "}
+                      {field.current_stage}
+                    </p>
+
+                    <p>
+                      <span className="font-medium">Planting Date:</span>{" "}
+                      {field.planting_date}
+                    </p>
+
+                    {field.location && (
+                      <p>
+                        <span className="font-medium">Location:</span>{" "}
+                        {field.location}
+                      </p>
+                    )}
+
+                    {field.notes && (
+                      <p>
+                        <span className="font-medium">Notes:</span>{" "}
+                        {field.notes}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => navigate(`/update/${field.id}`)}
+                    className="mt-4 w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+                  >
+                    Update Field
+                  </button>
+                </div>
               ))}
-
-              {agents.length === 0 && (
-                <tr>
-                  <td className="py-2 text-gray-400">No agents</td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       </section>
     </div>
   );
 }
-
-export default Agents;

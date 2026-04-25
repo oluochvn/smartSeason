@@ -1,106 +1,191 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "./Navbar";
 
-const NAV_ITEMS = ["Dashboard", "Fields", "Agents", "Report"];
+export default function Dashboard() {
+  const navigate = useNavigate();
 
-function Dashboard() {
-  const [active, setActive] = useState("Dashboard");
+  const [user, setUser] = useState<any>(null);
+  const [fields, setFields] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [updates, setUpdates] = useState<any[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (!token || !storedUser) {
+      navigate("/");
+      return;
+    }
+
+    const loggedUser = JSON.parse(storedUser);
+    setUser(loggedUser);
+
+    fetch(`http://localhost:3000/profile/${loggedUser.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.profile) {
+          setUser(data.profile);
+          localStorage.setItem("user", JSON.stringify(data.profile));
+        }
+      })
+      .catch(console.log);
+
+    fetch("http://localhost:3000/fields", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setFields(data.fields || []))
+      .catch(console.log);
+
+    fetch("http://localhost:3000/updates", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setUpdates(data.updates || []))
+      .catch(console.log);
+
+    // only admin should fetch users
+    if (loggedUser.role === "admin") {
+      fetch("http://localhost:3000/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => setAgents(data.users || []))
+        .catch(console.log);
+    }
+  }, [navigate]);
+
+  const role = user?.role?.toLowerCase();
+  const isAdmin = role === "admin";
+  const isAgent = role === "agent";
+
+  const activeFields = fields.filter((f) => f.status === "Active");
+  const atRiskFields = fields.filter((f) => f.status === "At Risk");
+  const completedFields = fields.filter((f) => f.status === "Completed");
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-950 h-14 flex items-center justify-between px-10">
-        <div className="flex items-center gap-8">
-          <span className="text-green-400 font-semibold text-lg">
-            Shamba
-          </span>
+      <Navbar />
 
-          <nav>
-            <ul className="flex text-white/60 font-bold gap-4">
-              {NAV_ITEMS.map((item) => (
-                <li
-                  key={item}
-                  onClick={() => setActive(item)}
-                  className={`cursor-pointer ${
-                    active === item ? "text-white" : ""
-                  }`}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
+      <section className="p-6">
+        <h1 className="text-2xl font-bold text-gray-800">
+          {isAdmin ? "Admin Dashboard" : "Field Agent Dashboard"}
+        </h1>
 
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-green-800 flex items-center justify-center text-xs font-semibold text-green-400">
-            AD
-          </div>
-          <span className="text-white/60 text-sm">Admin</span>
-        </div>
-      </header>
+        <p className="text-gray-500 mt-1">
+          Welcome, {user?.email}
+        </p>
 
-      <section className="grid grid-cols-4 gap-6 p-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-sm text-gray-500">Total Fields</h2>
-          <p className="text-xl font-bold">0</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-sm text-gray-500">Total Agents</h2>
-          <p className="text-xl font-bold">0</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-sm text-gray-500">At Risk</h2>
-          <p className="text-xl font-bold">0</p>
-        </div>
-
-        <button className="bg-white p-4 rounded-lg shadow text-left">
-          <h2 className="text-sm text-gray-500">Add Field</h2>
-          <p className="text-xl font-bold">+</p>
-        </button>
+        <p className="text-sm text-green-700 font-medium mt-1 capitalize">
+          Role: {role || "agent"}
+        </p>
       </section>
 
-      <section className="px-6 pb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-4">Summary</h2>
-
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-gray-500 text-sm border-b">
-                <th className="py-2">Field</th>
-                <th className="py-2">Agent</th>
-                <th className="py-2">Status</th>
-                <th className="py-2">Last Update</th>
-              </tr>
-            </thead>
-
-            <tbody className="text-sm">
-              <tr className="border-b">
-                <td className="py-2">Field A</td>
-                <td className="py-2">John</td>
-                <td className="py-2">Good</td>
-                <td className="py-2">Today</td>
-              </tr>
-
-              <tr className="border-b">
-                <td className="py-2">Field B</td>
-                <td className="py-2">Mary</td>
-                <td className="py-2">At Risk</td>
-                <td className="py-2">Yesterday</td>
-              </tr>
-
-              <tr>
-                <td className="py-2">Field C</td>
-                <td className="py-2">Alex</td>
-                <td className="py-2">Good</td>
-                <td className="py-2">2 days ago</td>
-              </tr>
-            </tbody>
-          </table>
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-6 px-6">
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">
+            {isAdmin ? "Total Fields" : "Assigned Fields"}
+          </h2>
+          <p className="text-2xl font-bold">{fields.length}</p>
         </div>
+
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">Active</h2>
+          <p className="text-2xl font-bold text-green-700">
+            {activeFields.length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">At Risk</h2>
+          <p className="text-2xl font-bold text-yellow-600">
+            {atRiskFields.length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow">
+          <h2 className="text-sm text-gray-500">Completed</h2>
+          <p className="text-2xl font-bold text-blue-700">
+            {completedFields.length}
+          </p>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <h2 className="text-lg font-semibold mb-4">
+              Registered Users
+            </h2>
+
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-gray-500 border-b">
+                  <th className="py-2">Email</th>
+                  <th className="py-2">Role</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {agents.map((u) => (
+                  <tr key={u.id} className="border-b">
+                    <td className="py-2">{u.email}</td>
+                    <td className="py-2 capitalize">{u.role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <h2 className="text-lg font-semibold mb-4">
+            Recent Updates
+          </h2>
+
+          {updates.length === 0 ? (
+            <p className="text-sm text-gray-400">No updates yet</p>
+          ) : (
+            updates.slice(0, 5).map((u) => (
+              <div key={u.id} className="border rounded p-3 mb-2 text-sm">
+                <p className="font-medium">
+                  Stage → {u.new_stage}
+                </p>
+                <p className="text-gray-500">
+                  {u.notes || "No notes"}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+
+        {isAgent && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <h2 className="text-lg font-semibold mb-4">
+              My Fields
+            </h2>
+
+            {fields.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                No assigned fields
+              </p>
+            ) : (
+              fields.slice(0, 5).map((f) => (
+                <div key={f.id} className="border p-3 mb-2 text-sm">
+                  <p className="font-medium">{f.name}</p>
+                  <p className="text-gray-500">
+                    {f.crop_type} • {f.current_stage}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </section>
     </div>
   );
 }
-
-export default Dashboard;
