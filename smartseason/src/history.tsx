@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
 type Update = {
-  id: number;
-  title?: string;
-  message?: string;
-  agent_id?: number | string;
-  created_at?: string;
+  id: string;
+  field_id: string;
+  agent_id: string;
+  previous_stage?: string;
+  new_stage: string;
+  notes?: string;
+  created_at: string;
 };
 
 export default function History() {
