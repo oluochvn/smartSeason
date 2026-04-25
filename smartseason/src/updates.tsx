@@ -21,7 +21,9 @@ function Updates() {
     note: "",
   });
 
-  const handleChange = (e) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -40,7 +42,7 @@ function Updates() {
     setForm({ field: "", stage: "", note: "" });
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (id: number) => {
     setUpdates(updates.filter((u) => u.id !== id));
   };
 

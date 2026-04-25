@@ -1,27 +1,33 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
+type FormType = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
 export default function Signup() {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormType>({
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
-  const validate = () => {
+  const validate = (): boolean => {
     if (!form.email || !form.password || !form.confirmPassword) {
       setError("All fields are required");
       return false;
@@ -45,7 +51,7 @@ export default function Signup() {
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -77,9 +83,12 @@ export default function Signup() {
       setTimeout(() => {
         navigate("/");
       }, 1200);
-
     } catch (err) {
-      setError(err.message || "Server error. Try again.");
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Server error. Try again.");
+      }
     } finally {
       setLoading(false);
     }
