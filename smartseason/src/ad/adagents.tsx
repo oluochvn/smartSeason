@@ -4,7 +4,7 @@ import Navbar from "../Navbar";
 type User = {
   id: string;
   email: string;
-  role: "admin" | "agent";
+  role: "admin" | "agent" | string;
 };
 
 type Field = {
@@ -40,11 +40,18 @@ export default function AdAgents() {
   }, [token]);
 
   const getAssignedCount = (agentId: string) => {
-    return fields.filter((field) => field.assigned_agent === agentId).length;
+    return fields.filter(
+      (field) => String(field.assigned_agent) === String(agentId)
+    ).length;
   };
 
-  const agents = users.filter((user) => user.role === "agent");
-  const admins = users.filter((user) => user.role === "admin");
+  const agents = users.filter(
+    (user) => user.role?.toLowerCase() === "agent"
+  );
+
+  const admins = users.filter(
+    (user) => user.role?.toLowerCase() === "admin"
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
