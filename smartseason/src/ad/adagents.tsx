@@ -20,7 +20,7 @@ export default function AdAgents() {
   const token = localStorage.getItem("token");
 
   const loadData = async () => {
-    const usersRes = await fetch("https://pb424.onrender.com//users", {
+    const usersRes = await fetch("https://pb424.onrender.com/users", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
