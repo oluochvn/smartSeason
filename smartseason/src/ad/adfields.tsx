@@ -16,7 +16,7 @@ type Field = {
 type User = {
   id: string;
   email: string;
-  role: string;
+  role?: string;
 };
 
 export default function AdFields() {
@@ -48,10 +48,19 @@ export default function AdFields() {
     const fieldsData = await fieldsRes.json();
     const usersData = await usersRes.json();
 
+    console.log("Users:", usersData);
+
     setFields(fieldsData.fields || []);
-    setAgents(
-      (usersData.users || []).filter((u: User) => u.role === "agent")
+
+    let filtered = (usersData.users || []).filter(
+      (u: User) => u.role?.toLowerCase() === "agent"
     );
+
+    if (filtered.length === 0) {
+      filtered = usersData.users || [];
+    }
+
+    setAgents(filtered);
   };
 
   useEffect(() => {
@@ -207,13 +216,11 @@ export default function AdFields() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b text-gray-500">
-                <th className="py-2">Name</th>
+                <th>Name</th>
                 <th>Crop</th>
-                <th>Date</th>
+                <th>Agent</th>
                 <th>Stage</th>
                 <th>Status</th>
-                <th>Agent</th>
-                <th>Location</th>
                 <th></th>
               </tr>
             </thead>
@@ -221,13 +228,11 @@ export default function AdFields() {
             <tbody>
               {fields.map((f) => (
                 <tr key={f.id} className="border-b">
-                  <td className="py-2">{f.name}</td>
+                  <td>{f.name}</td>
                   <td>{f.crop_type}</td>
-                  <td>{f.planting_date}</td>
+                  <td>{getAgentEmail(f.assigned_agent)}</td>
                   <td>{f.current_stage}</td>
                   <td>{f.status}</td>
-                  <td>{getAgentEmail(f.assigned_agent)}</td>
-                  <td>{f.location || "N/A"}</td>
                   <td>
                     <button
                       onClick={() => handleDelete(f.id)}
@@ -241,9 +246,7 @@ export default function AdFields() {
 
               {fields.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-3 text-gray-400">
-                    No fields
-                  </td>
+                  <td colSpan={6}>No fields</td>
                 </tr>
               )}
             </tbody>
