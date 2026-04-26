@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "../Navbar";
 
-type Agent = {
-  id: string;
-  email: string;
-  role: string;
-};
-
 type Field = {
   id: string;
   name: string;
@@ -19,10 +13,15 @@ type Field = {
   assigned_agent?: string;
 };
 
+type User = {
+  id: string;
+  email: string;
+  role: string;
+};
+
 export default function AdFields() {
   const [fields, setFields] = useState<Field[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-
+  const [agents, setAgents] = useState<User[]>([]);
   const [form, setForm] = useState({
     name: "",
     crop_type: "",
@@ -36,57 +35,41 @@ export default function AdFields() {
 
   const token = localStorage.getItem("token");
 
-  const loadFields = async () => {
-    const res = await fetch("http://localhost:3000/fields", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  const loadData = async () => {
+    const [fieldsRes, usersRes] = await Promise.all([
+      fetch("https://pb424.onrender.com/fields", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("https://pb424.onrender.com/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
 
-    const data = await res.json();
-    setFields(data.fields || []);
-  };
+    const fieldsData = await fieldsRes.json();
+    const usersData = await usersRes.json();
 
-  const loadAgents = async () => {
-    const res = await fetch("http://localhost:3000/users", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await res.json();
-    const onlyAgents = (data.users || []).filter(
-      (user: Agent) => user.role === "agent"
+    setFields(fieldsData.fields || []);
+    setAgents(
+      (usersData.users || []).filter((u: User) => u.role === "agent")
     );
-
-    setAgents(onlyAgents);
   };
 
   useEffect(() => {
-    if (token) {
-      loadFields();
-      loadAgents();
-    }
+    if (token) loadData();
   }, [token]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!form.name || !form.crop_type || !form.planting_date) return;
 
-    if (!form.name || !form.crop_type || !form.planting_date) {
-      alert("Field name, crop type, and planting date are required");
-      return;
-    }
-
-    await fetch("http://localhost:3000/fields", {
+    const res = await fetch("https://pb424.onrender.com/fields", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -98,71 +81,54 @@ export default function AdFields() {
       }),
     });
 
-    setForm({
-      name: "",
-      crop_type: "",
-      planting_date: "",
-      current_stage: "Planted",
-      status: "Active",
-      location: "",
-      notes: "",
-      assigned_agent: "",
-    });
-
-    loadFields();
+    if (res.ok) {
+      setForm({
+        name: "",
+        crop_type: "",
+        planting_date: "",
+        current_stage: "Planted",
+        status: "Active",
+        location: "",
+        notes: "",
+        assigned_agent: "",
+      });
+      loadData();
+    }
   };
 
   const handleDelete = async (id: string) => {
-    const confirmDelete = confirm("Delete this field?");
-    if (!confirmDelete) return;
-
-    await fetch(`http://localhost:3000/fields/${id}`, {
+    await fetch(`https://pb424.onrender.com/fields/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    loadFields();
+    loadData();
   };
 
-  const getAgentEmail = (agentId?: string) => {
-    const agent = agents.find((a) => a.id === agentId);
-    return agent ? agent.email : "Not assigned";
-  };
+  const getAgentEmail = (id?: string) =>
+    agents.find((a) => a.id === id)?.email || "Unassigned";
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
       <section className="p-6">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Fields Management
-        </h1>
-
-        <p className="text-gray-500 mt-1">
-          Create fields and assign them to field agents.
-        </p>
-      </section>
-
-      <section className="px-6 pb-6">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow p-5 grid grid-cols-1 md:grid-cols-3 gap-4"
-        >
+        <div className="bg-white p-5 rounded-xl shadow grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             name="name"
+            placeholder="Field name"
             value={form.name}
             onChange={handleChange}
-            placeholder="Field name"
             className="border px-3 py-2 rounded-lg"
           />
 
           <input
             name="crop_type"
+            placeholder="Crop type"
             value={form.crop_type}
             onChange={handleChange}
-            placeholder="Crop type"
             className="border px-3 py-2 rounded-lg"
           />
 
@@ -204,70 +170,68 @@ export default function AdFields() {
             className="border px-3 py-2 rounded-lg"
           >
             <option value="">Assign agent</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.email}
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.email}
               </option>
             ))}
           </select>
 
           <input
             name="location"
+            placeholder="Location"
             value={form.location}
             onChange={handleChange}
-            placeholder="Location"
             className="border px-3 py-2 rounded-lg"
           />
 
           <textarea
             name="notes"
+            placeholder="Notes"
             value={form.notes}
             onChange={handleChange}
-            placeholder="Notes"
             className="border px-3 py-2 rounded-lg md:col-span-2"
           />
 
           <button
-            type="submit"
-            className="bg-green-900 text-white px-4 py-2 rounded-lg hover:bg-green-800"
+            onClick={handleSubmit}
+            className="bg-green-700 text-white py-2 rounded-lg"
           >
-            Add Field
+            Create
           </button>
-        </form>
+        </div>
       </section>
 
       <section className="px-6 pb-6">
         <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
-          <h2 className="text-lg font-semibold mb-4">All Fields</h2>
-
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-gray-500 border-b">
+              <tr className="border-b text-gray-500">
                 <th className="py-2">Name</th>
-                <th className="py-2">Crop</th>
-                <th className="py-2">Planting Date</th>
-                <th className="py-2">Stage</th>
-                <th className="py-2">Status</th>
-                <th className="py-2">Agent</th>
-                <th className="py-2">Location</th>
-                <th className="py-2">Action</th>
+                <th>Crop</th>
+                <th>Date</th>
+                <th>Stage</th>
+                <th>Status</th>
+                <th>Agent</th>
+                <th>Location</th>
+                <th></th>
               </tr>
             </thead>
 
             <tbody>
-              {fields.map((field) => (
-                <tr key={field.id} className="border-b">
-                  <td className="py-3 font-medium">{field.name}</td>
-                  <td className="py-3">{field.crop_type}</td>
-                  <td className="py-3">{field.planting_date}</td>
-                  <td className="py-3">{field.current_stage}</td>
-                  <td className="py-3">{field.status}</td>
-                  <td className="py-3">{getAgentEmail(field.assigned_agent)}</td>
-                  <td className="py-3">{field.location || "N/A"}</td>
-                  <td className="py-3">
+              {fields.map((f) => (
+                <tr key={f.id} className="border-b">
+                  <td className="py-2">{f.name}</td>
+                  <td>{f.crop_type}</td>
+                  <td>{f.planting_date}</td>
+                  <td>{f.current_stage}</td>
+                  <td>{f.status}</td>
+                  <td>{getAgentEmail(f.assigned_agent)}</td>
+                  <td>{f.location || "N/A"}</td>
+                  <td>
                     <button
-                      onClick={() => handleDelete(field.id)}
-                      className="text-red-600 hover:underline"
+                      onClick={() => handleDelete(f.id)}
+                      className="text-red-500"
                     >
                       Delete
                     </button>
@@ -277,8 +241,8 @@ export default function AdFields() {
 
               {fields.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-4 text-gray-400">
-                    No fields found.
+                  <td colSpan={8} className="py-3 text-gray-400">
+                    No fields
                   </td>
                 </tr>
               )}
