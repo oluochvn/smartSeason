@@ -140,6 +140,7 @@ export default function MyFields() {
                       <option value="">Select new stage</option>
                       <option value="Planted">Planted</option>
                       <option value="Growing">Growing</option>
+                      <option value="Ready">At Risk</option>
                       <option value="Ready">Ready</option>
                       <option value="Harvested">Harvested</option>
                     </select>
