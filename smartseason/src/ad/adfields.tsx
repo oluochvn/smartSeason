@@ -15,14 +15,15 @@ type Field = {
 
 export default function MyFields() {
   const [fields, setFields] = useState<Field[]>([]);
-  const [updateForm, setUpdateForm] = useState<Record<string, {
-    new_stage: string;
-    notes: string;
-  }>>({});
+  const [updateForm, setUpdateForm] = useState<
+    Record<string, { new_stage: string; notes: string }>
+  >({});
 
   const token = localStorage.getItem("token");
 
   const loadFields = async () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
     const res = await fetch("https://pb424.onrender.com/fields", {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -30,7 +31,12 @@ export default function MyFields() {
     });
 
     const data = await res.json();
-    setFields(data.fields || []);
+
+    const assigned = (data.fields || []).filter(
+      (f: Field) => String(f.assigned_agent) === String(user.id)
+    );
+
+    setFields(assigned);
   };
 
   useEffect(() => {
@@ -54,10 +60,7 @@ export default function MyFields() {
   const handleUpdate = async (field: Field) => {
     const form = updateForm[field.id];
 
-    if (!form?.new_stage) {
-      alert("Please select a new stage");
-      return;
-    }
+    if (!form?.new_stage) return;
 
     const res = await fetch("https://pb424.onrender.com/updates", {
       method: "POST",
@@ -72,24 +75,13 @@ export default function MyFields() {
       }),
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message || "Update failed");
-      return;
+    if (res.ok) {
+      setUpdateForm({
+        ...updateForm,
+        [field.id]: { new_stage: "", notes: "" },
+      });
+      loadFields();
     }
-
-    alert("Field updated successfully");
-
-    setUpdateForm({
-      ...updateForm,
-      [field.id]: {
-        new_stage: "",
-        notes: "",
-      },
-    });
-
-    loadFields();
   };
 
   return (
@@ -100,10 +92,6 @@ export default function MyFields() {
         <h1 className="text-2xl font-bold text-gray-800">
           My Assigned Fields
         </h1>
-
-        <p className="text-gray-500 mt-1">
-          View and update only fields assigned to you.
-        </p>
       </section>
 
       <section className="px-6 pb-6">
@@ -120,13 +108,13 @@ export default function MyFields() {
                     {field.name}
                   </h3>
 
-                  <div className="mt-3 space-y-1 text-sm text-gray-600">
-                    <p>Crop: {field.crop_type}</p>
-                    <p>Planting Date: {field.planting_date}</p>
-                    <p>Location: {field.location || "N/A"}</p>
-                    <p>Current Stage: {field.current_stage}</p>
-                    <p>Status: {field.status}</p>
-                    <p>Notes: {field.notes || "No notes"}</p>
+                  <div className="mt-3 text-sm text-gray-600 space-y-1">
+                    <p>{field.crop_type}</p>
+                    <p>{field.planting_date}</p>
+                    <p>{field.location || "N/A"}</p>
+                    <p>{field.current_stage}</p>
+                    <p>{field.status}</p>
+                    <p>{field.notes || "No notes"}</p>
                   </div>
 
                   <div className="mt-4 space-y-3">
@@ -137,10 +125,9 @@ export default function MyFields() {
                       }
                       className="w-full border px-3 py-2 rounded-lg"
                     >
-                      <option value="">Select new stage</option>
+                      <option value="">Select stage</option>
                       <option value="Planted">Planted</option>
                       <option value="Growing">Growing</option>
-                      <option value="Ready">At Risk</option>
                       <option value="Ready">Ready</option>
                       <option value="Harvested">Harvested</option>
                     </select>
@@ -150,15 +137,14 @@ export default function MyFields() {
                       onChange={(e) =>
                         handleUpdateChange(field.id, "notes", e.target.value)
                       }
-                      placeholder="Add notes or observations"
                       className="w-full border px-3 py-2 rounded-lg"
                     />
 
                     <button
                       onClick={() => handleUpdate(field)}
-                      className="w-full bg-green-700 text-white py-2 rounded-lg hover:bg-green-800"
+                      className="w-full bg-green-700 text-white py-2 rounded-lg"
                     >
-                      Submit Update
+                      Update
                     </button>
                   </div>
                 </div>
