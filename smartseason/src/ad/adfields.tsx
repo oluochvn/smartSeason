@@ -13,75 +13,113 @@ type Field = {
   assigned_agent?: string;
 };
 
-export default function MyFields() {
+type User = {
+  id: string;
+  email: string;
+  role: string;
+};
+
+export default function AdFields() {
   const [fields, setFields] = useState<Field[]>([]);
-  const [updateForm, setUpdateForm] = useState<
-    Record<string, { new_stage: string; notes: string }>
-  >({});
+  const [agents, setAgents] = useState<User[]>([]);
+  const [form, setForm] = useState({
+    name: "",
+    crop_type: "",
+    planting_date: "",
+    current_stage: "Planted",
+    status: "Active",
+    location: "",
+    notes: "",
+    assigned_agent: "",
+  });
 
   const token = localStorage.getItem("token");
 
-  const loadFields = async () => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const loadData = async () => {
+    const [fieldsRes, usersRes] = await Promise.all([
+      fetch("https://pb424.onrender.com/fields", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("https://pb424.onrender.com/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
 
-    const res = await fetch("https://pb424.onrender.com/fields", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const fieldsData = await fieldsRes.json();
+    const usersData = await usersRes.json();
 
-    const data = await res.json();
-
-    const assigned = (data.fields || []).filter(
-      (f: Field) => String(f.assigned_agent) === String(user.id)
+    setFields(fieldsData.fields || []);
+    setAgents(
+      (usersData.users || []).filter((user: User) => user.role === "agent")
     );
-
-    setFields(assigned);
   };
 
   useEffect(() => {
-    if (token) loadFields();
+    if (token) loadData();
   }, [token]);
 
-  const handleUpdateChange = (
-    fieldId: string,
-    name: "new_stage" | "notes",
-    value: string
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
-    setUpdateForm({
-      ...updateForm,
-      [fieldId]: {
-        ...updateForm[fieldId],
-        [name]: value,
-      },
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleUpdate = async (field: Field) => {
-    const form = updateForm[field.id];
+  const handleSubmit = async () => {
+    if (!form.name || !form.crop_type || !form.planting_date) {
+      alert("Field name, crop type, and planting date are required");
+      return;
+    }
 
-    if (!form?.new_stage) return;
-
-    const res = await fetch("https://pb424.onrender.com/updates", {
+    const res = await fetch("https://pb424.onrender.com/fields", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        field_id: field.id,
-        new_stage: form.new_stage,
-        notes: form.notes || "",
+        ...form,
+        assigned_agent: form.assigned_agent || null,
       }),
     });
 
-    if (res.ok) {
-      setUpdateForm({
-        ...updateForm,
-        [field.id]: { new_stage: "", notes: "" },
-      });
-      loadFields();
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Failed to create field");
+      return;
     }
+
+    setForm({
+      name: "",
+      crop_type: "",
+      planting_date: "",
+      current_stage: "Planted",
+      status: "Active",
+      location: "",
+      notes: "",
+      assigned_agent: "",
+    });
+
+    loadData();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this field?")) return;
+
+    await fetch(`https://pb424.onrender.com/fields/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    loadData();
+  };
+
+  const getAgentEmail = (agentId?: string) => {
+    return agents.find((agent) => agent.id === agentId)?.email || "Unassigned";
   };
 
   return (
@@ -90,67 +128,150 @@ export default function MyFields() {
 
       <section className="p-6">
         <h1 className="text-2xl font-bold text-gray-800">
-          My Assigned Fields
+          Fields Management
         </h1>
+
+        <p className="text-gray-500 mt-1">
+          Create fields and assign them to field agents.
+        </p>
       </section>
 
       <section className="px-6 pb-6">
-        <div className="bg-white rounded-xl shadow p-5">
-          {fields.length === 0 ? (
-            <p className="text-gray-400 text-sm">
-              No fields assigned yet.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white p-5 rounded-xl shadow grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            name="name"
+            placeholder="Field name"
+            value={form.name}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          />
+
+          <input
+            name="crop_type"
+            placeholder="Crop type"
+            value={form.crop_type}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          />
+
+          <input
+            type="date"
+            name="planting_date"
+            value={form.planting_date}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          />
+
+          <select
+            name="current_stage"
+            value={form.current_stage}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          >
+            <option value="Planted">Planted</option>
+            <option value="Growing">Growing</option>
+            <option value="Ready">Ready</option>
+            <option value="Harvested">Harvested</option>
+          </select>
+
+          <select
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          >
+            <option value="Active">Active</option>
+            <option value="At Risk">At Risk</option>
+            <option value="Completed">Completed</option>
+          </select>
+
+          <select
+            name="assigned_agent"
+            value={form.assigned_agent}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          >
+            <option value="">Assign agent</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.email}
+              </option>
+            ))}
+          </select>
+
+          <input
+            name="location"
+            placeholder="Location"
+            value={form.location}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg"
+          />
+
+          <textarea
+            name="notes"
+            placeholder="Notes"
+            value={form.notes}
+            onChange={handleChange}
+            className="border px-3 py-2 rounded-lg md:col-span-2"
+          />
+
+          <button
+            onClick={handleSubmit}
+            className="bg-green-700 text-white py-2 rounded-lg hover:bg-green-800"
+          >
+            Create Field
+          </button>
+        </div>
+      </section>
+
+      <section className="px-6 pb-6">
+        <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">All Fields</h2>
+
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b text-gray-500">
+                <th className="py-2">Name</th>
+                <th>Crop</th>
+                <th>Planting Date</th>
+                <th>Stage</th>
+                <th>Status</th>
+                <th>Agent</th>
+                <th>Location</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
               {fields.map((field) => (
-                <div key={field.id} className="border rounded-xl p-4">
-                  <h3 className="font-bold text-gray-800">
-                    {field.name}
-                  </h3>
-
-                  <div className="mt-3 text-sm text-gray-600 space-y-1">
-                    <p>{field.crop_type}</p>
-                    <p>{field.planting_date}</p>
-                    <p>{field.location || "N/A"}</p>
-                    <p>{field.current_stage}</p>
-                    <p>{field.status}</p>
-                    <p>{field.notes || "No notes"}</p>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    <select
-                      value={updateForm[field.id]?.new_stage || ""}
-                      onChange={(e) =>
-                        handleUpdateChange(field.id, "new_stage", e.target.value)
-                      }
-                      className="w-full border px-3 py-2 rounded-lg"
-                    >
-                      <option value="">Select stage</option>
-                      <option value="Planted">Planted</option>
-                      <option value="Growing">Growing</option>
-                      <option value="Ready">Ready</option>
-                      <option value="Harvested">Harvested</option>
-                    </select>
-
-                    <textarea
-                      value={updateForm[field.id]?.notes || ""}
-                      onChange={(e) =>
-                        handleUpdateChange(field.id, "notes", e.target.value)
-                      }
-                      className="w-full border px-3 py-2 rounded-lg"
-                    />
-
+                <tr key={field.id} className="border-b">
+                  <td className="py-3 font-medium">{field.name}</td>
+                  <td>{field.crop_type}</td>
+                  <td>{field.planting_date}</td>
+                  <td>{field.current_stage}</td>
+                  <td>{field.status}</td>
+                  <td>{getAgentEmail(field.assigned_agent)}</td>
+                  <td>{field.location || "N/A"}</td>
+                  <td>
                     <button
-                      onClick={() => handleUpdate(field)}
-                      className="w-full bg-green-700 text-white py-2 rounded-lg"
+                      onClick={() => handleDelete(field.id)}
+                      className="text-red-500 hover:text-red-700"
                     >
-                      Update
+                      Delete
                     </button>
-                  </div>
-                </div>
+                  </td>
+                </tr>
               ))}
-            </div>
-          )}
+
+              {fields.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-4 text-gray-400">
+                    No fields found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
