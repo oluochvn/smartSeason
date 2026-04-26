@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import Navbar from "../Navbar";
 
+const API_URL = "https://pb424.onrender.com";
+
 type User = {
   id: string;
   email: string;
-  role: "admin" | "agent" | string;
+  role: string;
 };
 
 type Field = {
@@ -16,23 +18,46 @@ type Field = {
 export default function AdAgents() {
   const [users, setUsers] = useState<User[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
+  const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
 
   const loadData = async () => {
-    const usersRes = await fetch("https://pb424.onrender.com/users", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      setError("");
 
-    const usersData = await usersRes.json();
-    setUsers(usersData.users || []);
+      const usersRes = await fetch(`${API_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const fieldsRes = await fetch("https://pb424.onrender.com/fields", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      const usersData = await usersRes.json();
 
-    const fieldsData = await fieldsRes.json();
-    setFields(fieldsData.fields || []);
+      if (!usersRes.ok) {
+        setError(usersData.message || "Failed to load users");
+        return;
+      }
+
+      setUsers(usersData.users || []);
+
+      const fieldsRes = await fetch(`${API_URL}/fields`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const fieldsData = await fieldsRes.json();
+
+      if (!fieldsRes.ok) {
+        setError(fieldsData.message || "Failed to load fields");
+        return;
+      }
+
+      setFields(fieldsData.fields || []);
+    } catch (err) {
+      setError("Server connection failed");
+    }
   };
 
   useEffect(() => {
@@ -61,9 +86,16 @@ export default function AdAgents() {
         <h1 className="text-2xl font-bold text-gray-800">
           Agents Management
         </h1>
+
         <p className="text-gray-500 mt-1">
           View registered users and field agents.
         </p>
+
+        {error && (
+          <p className="mt-4 text-sm text-red-600">
+            {error}
+          </p>
+        )}
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6">
@@ -87,9 +119,7 @@ export default function AdAgents() {
 
       <section className="p-6">
         <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
-          <h2 className="text-lg font-semibold mb-4">
-            Field Agents
-          </h2>
+          <h2 className="text-lg font-semibold mb-4">Field Agents</h2>
 
           <table className="w-full text-left text-sm">
             <thead>
@@ -123,9 +153,7 @@ export default function AdAgents() {
 
       <section className="px-6 pb-6">
         <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
-          <h2 className="text-lg font-semibold mb-4">
-            Admin Users
-          </h2>
+          <h2 className="text-lg font-semibold mb-4">Admin Users</h2>
 
           <table className="w-full text-left text-sm">
             <thead>
