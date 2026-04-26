@@ -19,7 +19,6 @@ export default function AdAgents() {
   const [users, setUsers] = useState<User[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [error, setError] = useState("");
-
   const token = localStorage.getItem("token");
 
   const loadData = async () => {
@@ -39,8 +38,6 @@ export default function AdAgents() {
         return;
       }
 
-      setUsers(usersData.users || []);
-
       const fieldsRes = await fetch(`${API_URL}/fields`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -54,21 +51,20 @@ export default function AdAgents() {
         return;
       }
 
+      setUsers(usersData.users || []);
       setFields(fieldsData.fields || []);
-    } catch (err) {
-      setError("Server connection failed");
+    } catch {
+      setError("Could not connect to server");
     }
   };
 
   useEffect(() => {
-    if (token) loadData();
+    if (token) {
+      loadData();
+    } else {
+      setError("No token found. Login again.");
+    }
   }, [token]);
-
-  const getAssignedCount = (agentId: string) => {
-    return fields.filter(
-      (field) => String(field.assigned_agent) === String(agentId)
-    ).length;
-  };
 
   const agents = users.filter(
     (user) => user.role?.toLowerCase() === "agent"
@@ -78,6 +74,12 @@ export default function AdAgents() {
     (user) => user.role?.toLowerCase() === "admin"
   );
 
+  const getAssignedCount = (agentId: string) => {
+    return fields.filter(
+      (field) => String(field.assigned_agent) === String(agentId)
+    ).length;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -86,9 +88,8 @@ export default function AdAgents() {
         <h1 className="text-2xl font-bold text-gray-800">
           Agents Management
         </h1>
-
         <p className="text-gray-500 mt-1">
-          View registered users and field agents.
+          View all registered users and field agents.
         </p>
 
         {error && (
@@ -113,13 +114,17 @@ export default function AdAgents() {
 
         <div className="bg-white p-5 rounded-xl shadow">
           <h2 className="text-sm text-gray-500">Admins</h2>
-          <p className="text-2xl font-bold">{admins.length}</p>
+          <p className="text-2xl font-bold">
+            {admins.length}
+          </p>
         </div>
       </section>
 
       <section className="p-6">
         <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
-          <h2 className="text-lg font-semibold mb-4">Field Agents</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Field Agents
+          </h2>
 
           <table className="w-full text-left text-sm">
             <thead>
@@ -135,7 +140,9 @@ export default function AdAgents() {
                 <tr key={agent.id} className="border-b">
                   <td className="py-3">{agent.email}</td>
                   <td className="py-3 capitalize">{agent.role}</td>
-                  <td className="py-3">{getAssignedCount(agent.id)}</td>
+                  <td className="py-3">
+                    {getAssignedCount(agent.id)}
+                  </td>
                 </tr>
               ))}
 
@@ -153,7 +160,9 @@ export default function AdAgents() {
 
       <section className="px-6 pb-6">
         <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
-          <h2 className="text-lg font-semibold mb-4">Admin Users</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Admin Users
+          </h2>
 
           <table className="w-full text-left text-sm">
             <thead>
