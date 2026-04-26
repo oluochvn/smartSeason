@@ -32,21 +32,21 @@ export default function AdUpdates() {
   useEffect(() => {
     if (!token) return;
 
-    fetch("http://localhost:3000/updates", {
+    fetch("https://pb424.onrender.com/updates", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => setUpdates(data.updates || []))
       .catch((err) => console.log(err));
 
-    fetch("http://localhost:3000/fields", {
+    fetch("https://pb424.onrender.com/fields", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => setFields(data.fields || []))
       .catch((err) => console.log(err));
 
-    fetch("http://localhost:3000/users", {
+    fetch("https://pb424.onrender.com/users", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

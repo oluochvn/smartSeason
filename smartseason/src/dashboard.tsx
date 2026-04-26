@@ -22,7 +22,7 @@ export default function Dashboard() {
     const loggedUser = JSON.parse(storedUser);
     setUser(loggedUser);
 
-    fetch(`http://localhost:3000/profile/${loggedUser.id}`, {
+    fetch(`https://pb424.onrender.com/profile/${loggedUser.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -34,14 +34,14 @@ export default function Dashboard() {
       })
       .catch(console.log);
 
-    fetch("http://localhost:3000/fields", {
+    fetch("https://pb424.onrender.com/fields", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => setFields(data.fields || []))
       .catch(console.log);
 
-    fetch("http://localhost:3000/updates", {
+    fetch("https://pb424.onrender.com/updates", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -50,7 +50,7 @@ export default function Dashboard() {
 
     // only admin should fetch users
     if (loggedUser.role === "admin") {
-      fetch("http://localhost:3000/users", {
+      fetch("https://pb424.onrender.com/users", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())

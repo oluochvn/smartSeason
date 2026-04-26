@@ -41,7 +41,7 @@ export default function AdDashboard() {
 
     if (!token) return;
 
-    fetch("http://localhost:3000/fields", {
+    fetch("https://pb424.onrender.com/fields", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -50,7 +50,7 @@ export default function AdDashboard() {
       .then((data) => setFields(data.fields || []))
       .catch((err) => console.log(err));
 
-    fetch("http://localhost:3000/users", {
+    fetch("https://pb424.onrender.com/users", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -59,7 +59,7 @@ export default function AdDashboard() {
       .then((data) => setUsers(data.users || []))
       .catch((err) => console.log(err));
 
-    fetch("http://localhost:3000/updates", {
+    fetch("https://pb424.onrender.com/updates", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

@@ -20,14 +20,14 @@ export default function AdAgents() {
   const token = localStorage.getItem("token");
 
   const loadData = async () => {
-    const usersRes = await fetch("http://localhost:3000/users", {
+    const usersRes = await fetch("https://pb424.onrender.com//users", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     const usersData = await usersRes.json();
     setUsers(usersData.users || []);
 
-    const fieldsRes = await fetch("http://localhost:3000/fields", {
+    const fieldsRes = await fetch("https://pb424.onrender.com/fields", {
       headers: { Authorization: `Bearer ${token}` },
     });
 

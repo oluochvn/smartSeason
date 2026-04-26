@@ -18,7 +18,7 @@ export default function AdReport() {
   useEffect(() => {
     if (!token) return;
 
-    fetch("http://localhost:3000/fields", {
+    fetch("https://pb424.onrender.com/fields", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

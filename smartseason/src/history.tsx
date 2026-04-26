@@ -27,7 +27,7 @@ export default function History() {
       return;
     }
 
-    fetch("http://localhost:3000/updates", {
+    fetch("https://pb424.onrender.com/updates", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

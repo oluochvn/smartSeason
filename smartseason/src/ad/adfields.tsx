@@ -23,7 +23,7 @@ export default function MyFields() {
   const token = localStorage.getItem("token");
 
   const loadFields = async () => {
-    const res = await fetch("http://localhost:3000/fields", {
+    const res = await fetch("https://pb424.onrender.com/fields", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -59,7 +59,7 @@ export default function MyFields() {
       return;
     }
 
-    const res = await fetch("http://localhost:3000/updates", {
+    const res = await fetch("https://pb424.onrender.com/updates", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
