@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import Navbar from "../Navbar";
 
+type Agent = {
+  id: string;
+  email: string;
+  role: string;
+};
+
 type Field = {
   id: string;
   name: string;
@@ -13,15 +19,10 @@ type Field = {
   assigned_agent?: string;
 };
 
-type User = {
-  id: string;
-  email: string;
-  role: string;
-};
-
 export default function AdFields() {
   const [fields, setFields] = useState<Field[]>([]);
-  const [agents, setAgents] = useState<User[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+
   const [form, setForm] = useState({
     name: "",
     crop_type: "",
@@ -35,44 +36,57 @@ export default function AdFields() {
 
   const token = localStorage.getItem("token");
 
-  const loadData = async () => {
-    const [fieldsRes, usersRes] = await Promise.all([
-      fetch("https://pb424.onrender.com/fields", {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch("https://pb424.onrender.com/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-    ]);
+  const loadFields = async () => {
+    const res = await fetch("http://localhost:3000/fields", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-    const fieldsData = await fieldsRes.json();
-    const usersData = await usersRes.json();
+    const data = await res.json();
+    setFields(data.fields || []);
+  };
 
-    setFields(fieldsData.fields || []);
-    setAgents(
-      (usersData.users || []).filter((user: User) => user.role === "agent")
+  const loadAgents = async () => {
+    const res = await fetch("http://localhost:3000/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+    const onlyAgents = (data.users || []).filter(
+      (user: Agent) => user.role === "agent"
     );
+
+    setAgents(onlyAgents);
   };
 
   useEffect(() => {
-    if (token) loadData();
+    if (token) {
+      loadFields();
+      loadAgents();
+    }
   }, [token]);
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     if (!form.name || !form.crop_type || !form.planting_date) {
       alert("Field name, crop type, and planting date are required");
       return;
     }
 
-    const res = await fetch("https://pb424.onrender.com/fields", {
+    await fetch("http://localhost:3000/fields", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -83,13 +97,6 @@ export default function AdFields() {
         assigned_agent: form.assigned_agent || null,
       }),
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message || "Failed to create field");
-      return;
-    }
 
     setForm({
       name: "",
@@ -102,24 +109,26 @@ export default function AdFields() {
       assigned_agent: "",
     });
 
-    loadData();
+    loadFields();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this field?")) return;
+    const confirmDelete = confirm("Delete this field?");
+    if (!confirmDelete) return;
 
-    await fetch(`https://pb424.onrender.com/fields/${id}`, {
+    await fetch(`http://localhost:3000/fields/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    loadData();
+    loadFields();
   };
 
   const getAgentEmail = (agentId?: string) => {
-    return agents.find((agent) => agent.id === agentId)?.email || "Unassigned";
+    const agent = agents.find((a) => a.id === agentId);
+    return agent ? agent.email : "Not assigned";
   };
 
   return (
@@ -137,20 +146,23 @@ export default function AdFields() {
       </section>
 
       <section className="px-6 pb-6">
-        <div className="bg-white p-5 rounded-xl shadow grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-xl shadow p-5 grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
           <input
             name="name"
-            placeholder="Field name"
             value={form.name}
             onChange={handleChange}
+            placeholder="Field name"
             className="border px-3 py-2 rounded-lg"
           />
 
           <input
             name="crop_type"
-            placeholder="Crop type"
             value={form.crop_type}
             onChange={handleChange}
+            placeholder="Crop type"
             className="border px-3 py-2 rounded-lg"
           />
 
@@ -201,27 +213,27 @@ export default function AdFields() {
 
           <input
             name="location"
-            placeholder="Location"
             value={form.location}
             onChange={handleChange}
+            placeholder="Location"
             className="border px-3 py-2 rounded-lg"
           />
 
           <textarea
             name="notes"
-            placeholder="Notes"
             value={form.notes}
             onChange={handleChange}
+            placeholder="Notes"
             className="border px-3 py-2 rounded-lg md:col-span-2"
           />
 
           <button
-            onClick={handleSubmit}
-            className="bg-green-700 text-white py-2 rounded-lg hover:bg-green-800"
+            type="submit"
+            className="bg-green-900 text-white px-4 py-2 rounded-lg hover:bg-green-800"
           >
-            Create Field
+            Add Field
           </button>
-        </div>
+        </form>
       </section>
 
       <section className="px-6 pb-6">
@@ -230,15 +242,15 @@ export default function AdFields() {
 
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b text-gray-500">
+              <tr className="text-gray-500 border-b">
                 <th className="py-2">Name</th>
-                <th>Crop</th>
-                <th>Planting Date</th>
-                <th>Stage</th>
-                <th>Status</th>
-                <th>Agent</th>
-                <th>Location</th>
-                <th>Action</th>
+                <th className="py-2">Crop</th>
+                <th className="py-2">Planting Date</th>
+                <th className="py-2">Stage</th>
+                <th className="py-2">Status</th>
+                <th className="py-2">Agent</th>
+                <th className="py-2">Location</th>
+                <th className="py-2">Action</th>
               </tr>
             </thead>
 
@@ -246,16 +258,16 @@ export default function AdFields() {
               {fields.map((field) => (
                 <tr key={field.id} className="border-b">
                   <td className="py-3 font-medium">{field.name}</td>
-                  <td>{field.crop_type}</td>
-                  <td>{field.planting_date}</td>
-                  <td>{field.current_stage}</td>
-                  <td>{field.status}</td>
-                  <td>{getAgentEmail(field.assigned_agent)}</td>
-                  <td>{field.location || "N/A"}</td>
-                  <td>
+                  <td className="py-3">{field.crop_type}</td>
+                  <td className="py-3">{field.planting_date}</td>
+                  <td className="py-3">{field.current_stage}</td>
+                  <td className="py-3">{field.status}</td>
+                  <td className="py-3">{getAgentEmail(field.assigned_agent)}</td>
+                  <td className="py-3">{field.location || "N/A"}</td>
+                  <td className="py-3">
                     <button
                       onClick={() => handleDelete(field.id)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-600 hover:underline"
                     >
                       Delete
                     </button>
@@ -266,7 +278,7 @@ export default function AdFields() {
               {fields.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-4 text-gray-400">
-                    No fields found
+                    No fields found.
                   </td>
                 </tr>
               )}
